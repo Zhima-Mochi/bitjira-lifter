@@ -1,0 +1,9 @@
+summary:
+  source: ai
+risk:
+  source: manual
+reviewer:
+  source: default
+  value: "@review_team"
+ref:
+  source: ticket_id 
