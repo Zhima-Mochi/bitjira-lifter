@@ -1,5 +1,7 @@
 import os
 from atlassian import Jira
+from deep_translator import GoogleTranslator
+
 
 JIRA_URL = os.getenv("JIRA_URL")
 JIRA_USER = os.getenv("JIRA_USER")
@@ -11,7 +13,7 @@ def _jira_client():
     return Jira(url=JIRA_URL, username=JIRA_USER, password=JIRA_TOKEN)
 
 
-def create_branch(ticket: str) -> str:
+def create_branch(ticket: str, branch_type: str = "feature") -> str:
     """
     Create a new branch named feature/{ticket}-{short_desc} or return existing.
     """
@@ -19,7 +21,11 @@ def create_branch(ticket: str) -> str:
     jira = _jira_client()
     issue = jira.issue(ticket)
     summary = issue.fields.summary.replace(" ", "-").lower()
-    branch_name = f"feature/{ticket}-{summary[:50]}"
+    # translate into English if it's not
+    if not summary.isascii():
+        summary = GoogleTranslator(source='auto', target='en').translate(summary)
+        summary = summary.replace(" ", "-").lower()
+    branch_name = f"{branch_type}/{ticket}-{summary[:50]}"
 
     existing = find_branches()
     if branch_name in existing:
@@ -29,7 +35,10 @@ def create_branch(ticket: str) -> str:
     return branch_name
 
 
-def find_branches() -> list:
+def find_branches(ticket: str = None) -> list:
     """List all local branches."""
     from git.git_utils import list_local_branches
-    return list_local_branches() 
+    branches = list_local_branches()
+    if ticket:
+        branches = [branch for branch in branches if ticket in branch]
+    return branches

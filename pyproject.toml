@@ -24,6 +24,7 @@ atlassian-python-api = "^4.0.3"
 pyyaml = "^6.0.2"
 transformers = "^4.51.3"
 accelerate = "^1.6.0"
+deep-translator = "^1.11.4"
 
 
 [tool.poetry.group.dev.dependencies]
