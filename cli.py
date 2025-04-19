@@ -4,6 +4,9 @@ from ai.generator import generate_commit_message, generate_pr_description
 from utils.field_resolver import resolve_fields
 from git.git_utils import get_staged_diff, commit_with_message
 from jira.branch_helper import create_branch, find_branches
+from dotenv import load_dotenv
+load_dotenv()
+
 
 app = typer.Typer()
 
