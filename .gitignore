@@ -177,3 +177,8 @@ cython_debug/
 templates/*
 !templates/commit_template.example
 !templates/pr_template.example
+
+# Ignore all files in the config directory except for the example files
+config/*
+!config/default_field_config.yaml.example
+!config/ticket_overrides/JIRA-1234.yaml.example
