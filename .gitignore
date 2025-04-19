@@ -175,4 +175,5 @@ cython_debug/
 
 # Ignore all files in the templates directory except for the example file
 templates/*
-!templates/example
+!templates/commit_template.example
+!templates/pr_template.example
