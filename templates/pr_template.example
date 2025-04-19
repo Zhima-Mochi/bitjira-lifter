@@ -1,8 +1,6 @@
-Jira Ticket: {jira_ticket}
-Summary: {summary}
-Risk: {risk}
-Reviewer: {reviewer}
-Ref: {ref}
+Summary:
+Risk:
+Ref:
 
 Checklist:
 - [ ] Tests passed
