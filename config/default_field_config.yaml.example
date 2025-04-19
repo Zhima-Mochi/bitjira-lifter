@@ -1,0 +1,6 @@
+summary:
+  source: ai
+description:
+  source: ai
+jira_ticket:
+  source: ticket_id

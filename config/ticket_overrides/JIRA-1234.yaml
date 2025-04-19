@@ -1,9 +1,0 @@
-summary:
-  source: ai
-risk:
-  source: manual
-reviewer:
-  source: manual
-ref:
-  source: custom
-  value: "REF-9988" 
