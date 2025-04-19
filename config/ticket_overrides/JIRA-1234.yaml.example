@@ -1,0 +1,7 @@
+summary:
+  source: ai
+reviewer:
+  source: manual
+remark:
+  source: custom
+  value: "It is an example"
