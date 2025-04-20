@@ -19,24 +19,12 @@ except ImportError:
     logger.warning("dotenv not installed, using existing environment variables")
 
 # Import the client implementation instead of direct generator
-from ai.client import generate, generate_commit_message, generate_pr_description
+from ai.client import generate as client_generate, generate_commit_message, generate_pr_description
 from git.git_utils import get_staged_diff, commit_with_message, GitError, current_branch, get_diff_to_target_branch
 from jira.branch_helper import create_branch, find_branches, JiraError
 from bitbucket.cloud_helper import create_pull_request, BitbucketError
 
 app = typer.Typer(help="BitJira Lifter: CLI tool for AI-driven Git and Jira workflow")
-
-@app.command()
-def prepare_model():
-    """
-    Prepare the model - use 'server' command instead for persistent model loading.
-    """
-    typer.secho("WARNING: This command loads the model for one-time use.", fg=typer.colors.YELLOW)
-    typer.secho("For better performance, run 'server' command to start a persistent server.", fg=typer.colors.YELLOW)
-    
-    from ai.generator import prepare_model
-    prepare_model()
-    typer.secho("Model loaded successfully", fg=typer.colors.GREEN)
 
 @app.command()
 def server(
@@ -86,7 +74,7 @@ def check_server():
 @app.command()
 def generate(
     prompt: str = typer.Argument(..., help="Prompt to generate text from"),
-    max_new_tokens: int = typer.Option(100, help="Maximum number of tokens to generate"),
+    max_new_tokens: int = typer.Option(1000, help="Maximum number of tokens to generate"),
     do_sample: bool = typer.Option(True, help="Sample from the model"),
     top_p: float = typer.Option(0.95, help="Top-p sampling parameter"),
     temperature: float = typer.Option(0.7, help="Temperature for the model"),
@@ -95,7 +83,7 @@ def generate(
     Generate text using the model.
     """
     # The client will automatically check if the server is running and fall back if needed
-    result = generate(prompt, max_new_tokens, do_sample, top_p, temperature)
+    result = client_generate(prompt, max_new_tokens, do_sample, top_p, temperature)
     print(result)
 
 @app.command()
