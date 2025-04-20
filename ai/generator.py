@@ -11,32 +11,54 @@ logger = logging.getLogger(__name__)
 
 # Initialize accelerator
 accelerator = Accelerator()
-device = accelerator.device
+DEVICE = accelerator.device
 
-# Load local model and tokenizer
-MODEL_PATH = os.getenv("LOCAL_LLM_PATH", "./models/llm")
+MODEL_LOADED = False
+MODEL = None
+TOKENIZER = None
+GENERATOR = None
 
-# Safely load the model with error handling
-try:
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
-    model.to(device)
-    generator = pipeline("text-generation", model=model,
-                         tokenizer=tokenizer, device=device)
-    MODEL_LOADED = True
-except Exception as e:
-    logger.error(f"Error loading model: {e}")
-    logger.warning("Falling back to placeholder text generation")
-    MODEL_LOADED = False
+def prepare_model(model_id: str = None):
+    """
+    Load model from local path or HuggingFace (fallback).
+    If LOCAL_LLM_PATH exists, loads from local dir.
+    If not, auto-download from HuggingFace using `model_id`.
+    """
+    global MODEL_LOADED, MODEL, TOKENIZER, DEVICE
+    if MODEL_LOADED:
+        return
+    
+    model_id = model_id or os.getenv("MODEL_ID")
+    if not model_id:
+        raise ValueError("MODEL_ID environment variable is not set")
 
+    try:
+        TOKENIZER = AutoTokenizer.from_pretrained(model_id)
+        MODEL = AutoModelForCausalLM.from_pretrained(model_id)
+        MODEL.to(DEVICE)
+        logger.info(f"Model loaded from {model_id}")
+        MODEL_LOADED = True
+    except Exception as e:
+        logger.error(f"Error loading model: {e}")
+        MODEL_LOADED = False
+
+def prepare_generator():
+    global GENERATOR
+    if GENERATOR:
+        return
+    prepare_model()
+    if not MODEL_LOADED:
+        return
+    GENERATOR = pipeline("text-generation", model=MODEL, tokenizer=TOKENIZER, device=DEVICE)
 
 def generate(prompt: str, max_new_tokens: int = 100, do_sample: bool = True, top_p: float = 0.95, temperature: float = 0.7) -> str:
     """Generate text using the loaded model or return a placeholder if model failed to load."""
+    prepare_generator()
     if not MODEL_LOADED:
         return f"[AI generation unavailable - placeholder for: {prompt[:30]}...]"
 
     try:
-        output = generator(prompt, max_new_tokens=max_new_tokens,
+        output = GENERATOR(prompt, max_new_tokens=max_new_tokens,
                            do_sample=do_sample, top_p=top_p, temperature=temperature)
         return output[0]["generated_text"].replace(prompt, "").strip()
     except Exception as e:

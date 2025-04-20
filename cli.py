@@ -1,27 +1,46 @@
-import os
 import logging
-import typer
-from typing import Optional
-from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(logging.WARNING)
+
+import os
+import typer
+from typing import Optional
+from pathlib import Path
+
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    logger.info("Environment variables loaded")
+except ImportError:
+    logger.warning("dotenv not installed, using existing environment variables")
+
 
 from ai.generator import generate_commit_message, generate_pr_description
 from git.git_utils import get_staged_diff, commit_with_message, GitError, current_branch, get_diff_to_target_branch
 from jira.branch_helper import create_branch, find_branches, JiraError
 from bitbucket.cloud_helper import create_pull_request, BitbucketError
 
-# Load environment variables
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-    logger.info("Environment variables loaded")
-except ImportError:
-    logger.warning("dotenv not installed, using existing environment variables")
-
 app = typer.Typer(help="BitJira Lifter: CLI tool for AI-driven Git and Jira workflow")
+
+@app.command()
+def prepare_model():
+    from ai.generator import prepare_model
+    prepare_model()
+
+@app.command()
+def generate(
+    prompt: str = typer.Argument(..., help="Prompt to generate text from"),
+    max_new_tokens: int = typer.Option(100, help="Maximum number of tokens to generate"),
+    do_sample: bool = typer.Option(True, help="Sample from the model"),
+    top_p: float = typer.Option(0.95, help="Top-p sampling parameter"),
+    temperature: float = typer.Option(0.7, help="Temperature for the model"),
+):
+    from ai.generator import generate
+    print(generate(prompt, max_new_tokens, do_sample, top_p, temperature))
 
 @app.command()
 def ai_commit(
@@ -244,4 +263,4 @@ def create_pr(
         typer.secho(f"Unexpected error: {str(e)}", fg=typer.colors.RED)
 
 if __name__ == "__main__":
-    app() 
+    app()
