@@ -18,8 +18,8 @@ try:
 except ImportError:
     logger.warning("dotenv not installed, using existing environment variables")
 
-
-from ai.generator import generate_commit_message, generate_pr_description
+# Import the client implementation instead of direct generator
+from ai.client import generate, generate_commit_message, generate_pr_description
 from git.git_utils import get_staged_diff, commit_with_message, GitError, current_branch, get_diff_to_target_branch
 from jira.branch_helper import create_branch, find_branches, JiraError
 from bitbucket.cloud_helper import create_pull_request, BitbucketError
@@ -28,8 +28,60 @@ app = typer.Typer(help="BitJira Lifter: CLI tool for AI-driven Git and Jira work
 
 @app.command()
 def prepare_model():
+    """
+    Prepare the model - use 'server' command instead for persistent model loading.
+    """
+    typer.secho("WARNING: This command loads the model for one-time use.", fg=typer.colors.YELLOW)
+    typer.secho("For better performance, run 'server' command to start a persistent server.", fg=typer.colors.YELLOW)
+    
     from ai.generator import prepare_model
     prepare_model()
+    typer.secho("Model loaded successfully", fg=typer.colors.GREEN)
+
+@app.command()
+def server(
+    host: str = typer.Option("127.0.0.1", help="Host address to bind the server to"),
+    port: int = typer.Option(8000, help="Port number to listen on")
+):
+    """
+    Start the model server for persistent model loading.
+    """
+    try:
+        import uvicorn
+        # Check if FastAPI is installed
+        try:
+            import fastapi
+        except ImportError:
+            typer.secho("FastAPI not installed. Installing required packages...", fg=typer.colors.YELLOW)
+            import subprocess
+            subprocess.check_call(["pip", "install", "fastapi", "uvicorn"])
+        
+        typer.secho(f"Starting model server at http://{host}:{port}", fg=typer.colors.GREEN)
+        typer.secho("The model will be loaded once and kept in memory for all requests.", fg=typer.colors.GREEN)
+        typer.secho("Press Ctrl+C to stop the server.", fg=typer.colors.YELLOW)
+        
+        # Set environment variables for the server
+        os.environ["MODEL_SERVER_HOST"] = host
+        os.environ["MODEL_SERVER_PORT"] = str(port)
+        
+        # Import and run the server
+        from ai.model_server import start_server
+        start_server(host=host, port=port)
+    except Exception as e:
+        typer.secho(f"Error starting server: {str(e)}", fg=typer.colors.RED)
+
+@app.command()
+def check_server():
+    """
+    Check if the model server is running.
+    """
+    from ai.client import get_client
+    client = get_client()
+    if client.check_health():
+        typer.secho("Model server is running and healthy!", fg=typer.colors.GREEN)
+    else:
+        typer.secho("Model server is not running or not responding.", fg=typer.colors.RED)
+        typer.echo("Run 'server' command to start the model server.")
 
 @app.command()
 def generate(
@@ -39,8 +91,12 @@ def generate(
     top_p: float = typer.Option(0.95, help="Top-p sampling parameter"),
     temperature: float = typer.Option(0.7, help="Temperature for the model"),
 ):
-    from ai.generator import generate
-    print(generate(prompt, max_new_tokens, do_sample, top_p, temperature))
+    """
+    Generate text using the model.
+    """
+    # The client will automatically check if the server is running and fall back if needed
+    result = generate(prompt, max_new_tokens, do_sample, top_p, temperature)
+    print(result)
 
 @app.command()
 def ai_commit(
